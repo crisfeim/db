@@ -9,3 +9,4 @@ if ! git diff-index --quiet HEAD; then
 fi
 
 git push origin main
+osascript -e 'display notification "Backup de DB completado" with title "Database job"'
