@@ -6,7 +6,7 @@ git add .
 
 if ! git diff-index --quiet HEAD; then
     git commit -m "$NOW backup"
+	git push origin main
+	osascript -e 'display notification "Backup de DB completado" with title "Database job"'
 fi
 
-git push origin main
-osascript -e 'display notification "Backup de DB completado" with title "Database job"'
