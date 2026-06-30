@@ -1,0 +1,11 @@
+> Think about a kanban application - it's just not something that makes sense as a CLI thing.
+  mkdir kanban
+  cd kanban
+  mkdir 0todo 1doing 2done
+  touch 0todo/task1.md
+  ls *
+  0todo:
+  task1.md
+  1doing:
+  2done:
+A 5 second kanban board.
