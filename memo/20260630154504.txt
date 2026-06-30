@@ -1,5 +1,0 @@
-Para restaurar un archivo específico a su estado en un commit determinado, utiliza el comando `checkout` de Git:
-```bash
-git checkout ea099df0daa0201f5aaec18c60c23f64fff03323 -- tests/counter.tcl
-```
-Este comando reemplazará el archivo actual en tu directorio de trabajo con la versión que tenía en ese commit específico, dejándolo listo para ser añadido al área de *staging* y confirmado posteriormente si deseas mantener el cambio.
