@@ -1,0 +1,35 @@
+La modelización matemática es, en esencia, la reducción de un sistema a su esqueleto lógico. Olvida los *flags* y la sintaxis por un momento; lo que tienes es una **Máquina de Estados Finita**.
+### 1. Especificación formal: El modelo
+Antes de implementar, define el contrato de tus transiciones. Una especificación formal luce así:
+* **Estado ($S$):** Un par de conjuntos $\{T, D\}$, donde $T$ son las tareas pendientes y $D$ las completadas.
+* **Invariante ($Inv$):** La propiedad que siempre debe cumplirse:
+* $|T| + |D| = N$ (donde $N$ es el total de tareas creadas históricamente).
+* **Transición ($\delta$):** Una función $\delta(S, op) \rightarrow S'$.
+* Para `complete(n)`:
+* Precondición: $n \in T$.
+* Acción: $T' = T \setminus \{n\}$, $D' = D \cup \{n\}$.
+* Verificación: $|T'| + |D'| = |T| + |D|$.
+Si tu código asegura que tras cada comando el invariante $Inv$ sigue siendo verdadero, has demostrado matemáticamente que el sistema no puede entrar en un estado corrupto.
+### 2. Testing basado en propiedades (QCheck)
+En lugar de escribir un test que diga "si hago `+3`, la lista disminuye", escribes un test que diga: "para cualquier comando aleatorio y cualquier estado válido, la suma de tareas pendientes y hechas debe mantenerse constante".
+```ocaml
+(* Ejemplo conceptual de QCheck *)
+let prop_invariante =
+  Test.make ~count:1000 (list_of_commands) (fun cmds ->
+    let estado_final = fold_left ejecutar_comando estado_inicial cmds in
+    (cardinal estado_final.todo + cardinal estado_final.done) = total_historico
+  )
+```
+Esto es poderoso: el programa intenta buscar una combinación de comandos (ej. `+3`, luego `-5`, luego `+2`) que rompa tu invariante. Si encuentra una, te entrega la secuencia exacta que causó el fallo.
+### 3. El cambio en la API
+Tu intuición es correcta. Semánticamente, el *prefijo* funciona mejor porque estás declarando la **intención** de la operación antes de especificar el **objeto**.
+
+1. La notación de conjuntos
+Cuando escribí T 
+′
+ =T∖{n}, solo estoy usando lenguaje de conjuntos para decir: "la nueva lista de tareas pendientes (T 
+′
+ ) es la lista anterior (T) menos el elemento (n)".
+El símbolo ∖ es una resta de conjuntos. Si T era {1, 2, 3} y n era 3, entonces T 
+′
+  es simplemente {1, 2}. Es una forma breve de decir: "quítalo de la lista".

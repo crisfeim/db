@@ -1,0 +1,5 @@
+2. ¿Qué es la Aridad?
+La aridad es simplemente el número de argumentos que acepta una función o comando.
+Si un comando fuera solo t, su aridad sería 0 (no toma argumentos).
+Si el comando es t c3, el comando c tiene una aridad de 1 (el argumento es 3).
+Al decir que tu nueva API tiene "aridad constante" en su estructura, quiero decir que el comando siempre empieza con el operador, facilitando al parser saber qué esperar a continuación. Es como decir que todas las funciones de tu sistema siguen el formato operador + argumento.
