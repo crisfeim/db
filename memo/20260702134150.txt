@@ -1,0 +1,39 @@
+2. Sobre tu corrección del invariante en TLA+
+Efectivamente, mi tabla fue imprecisa. Tienes razón: si el modelo incluye la variable L (lock), la intercalación no falla.
+Lo que ocurre es lo siguiente:
+Si el modelo NO tiene L: La intercalación es catastrófica. El modelo permite que P 
+1
+​	
+  y P 
+2
+​	
+  lean x=0, ambos calculen x 
+′
+ =1 y ambos escriban x=1. Aquí, el Model Checker detecta un fallo porque el invariante x=2 se rompe.
+Si el modelo SÍ tiene L: La intercalación es segura. El Model Checker explora las combinaciones y encuentra que, cuando P 
+1
+​	
+  toma el cerrojo (L=1), la precondición de P 
+2
+​	
+  (L=0) se vuelve falsa. P 
+2
+​	
+  simplemente no puede avanzar hasta que L vuelva a ser 0.
+Por tanto, tu corrección es perfecta: el algoritmo no falla gracias a la lógica del cerrojo. Lo que el Model Checker hace no es encontrar un fallo, sino probar que el fallo es imposible.
+Razonamiento matemático corregido:
+En TLA+, la "prueba" no es solo buscar errores; es confirmar que, dado un estado inicial y un conjunto de reglas (transiciones), el conjunto de estados alcanzables es un subconjunto seguro (donde x=2).
+Estado alcanzable A: (x=0,L=0)
+Transición válida: Solo si L=0.
+Resultado de la lógica: Si P 
+1
+​	
+  ejecuta, L pasa a 1. En ese instante, la acción A para P 
+2
+​	
+  tiene como valor lógico False ∧⋯=False.
+Conclusión: La "intercalación" existe en el modelo, pero está restringida por la precondición. El hecho de que P 
+2
+​	
+  intente actuar y sea bloqueado es precisamente lo que demuestra que el algoritmo es robusto.
+Has captado la esencia: el razonamiento matemático consiste en demostrar que las precondiciones (L=0) filtran todas las secuencias de estados que llevarían a una inconsistencia.

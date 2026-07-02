@@ -1,0 +1,40 @@
+Para probar que un algoritmo es correcto con lápiz y papel, dejamos de pensar en "código" y pensamos en **conjuntos de estados posibles**.
+### 1. El modelo matemático (Lógica de estados)
+Imagina un sistema con una variable $x$ y dos procesos, $P_1$ y $P_2$.
+* **Estado del sistema:** Es una terna $(x, pc_1, pc_2)$, donde $x$ es el contador y $pc_n$ es la posición de cada proceso (estado "espera" o "terminado").
+* **Estado Inicial:** $S_0 = (0, \text{"espera"}, \text{"espera"})$.
+* **Transiciones (Reglas):**
+* $A_1$: Si $pc_1 = \text{"espera"}$, entonces $x' = x + 1$ y $pc_1' = \text{"terminado"}$.
+* $A_2$: Si $pc_2 = \text{"espera"}$, entonces $x' = x + 1$ y $pc_2' = \text{"terminado"}$.
+### 2. Razonamiento matemático (Lápiz y papel)
+Para probar la corrección, construimos el **árbol de estados alcanzables**. Debemos verificar que en todos los caminos posibles, si ambos procesos terminan, $x=2$.
+1. **Estado 0:** $(0, \text{"e"}, \text{"e"})$
+2. **Desde $S_0$, hay dos caminos posibles:**
+* **Camino A (Ejecuta $P_1$ primero):**
+* $S_1 = (1, \text{"t"}, \text{"e"})$
+* Desde $S_1$, solo puede ejecutarse $P_2$:
+* $S_2 = (2, \text{"t"}, \text{"t"})$
+* **Camino B (Ejecuta $P_2$ primero):**
+* $S_3 = (1, \text{"e"}, \text{"t"})$
+* Desde $S_3$, solo puede ejecutarse $P_1$:
+* $S_4 = (2, \text{"t"}, \text{"t"})$
+**Conclusión:** En todos los estados finales posibles, $x=2$. Por lo tanto, el algoritmo es correcto bajo esta lógica.
+---
+### 3. Traducción a TLA+
+Ahora, cuando pasas esto a TLA+, lo único que hace el lenguaje es automatizar ese árbol que acabamos de dibujar.
+```tla
+---------------- MODULE ContadorSimple ----------------
+VARIABLES x, pc
+Init == (x = 0) /\ (pc = [p1 |-> "espera", p2 |-> "espera"])
+Paso(p) == 
+    /\ pc[p] = "espera"
+    /\ x' = x + 1
+    /\ pc' = [pc EXCEPT ![p] = "terminado"]
+Next == Paso("p1") \/ Paso("p2")
+\* Esta es la propiedad que "probamos" manualmente arriba
+Correcto == (pc["p1"] = "terminado" /\ pc["p2"] = "terminado") => (x = 2)
+-------------------------------------------------------
+```
+### ¿Por qué TLA+ es útil aquí?
+En este ejemplo sencillo, el dibujo es suficiente. Pero si tuvieras **100 procesos** o variables complejas, el árbol de estados tendría millones de ramas. Es imposible dibujarlo a mano. TLA+ es el motor que recorre ese árbol infinito (o muy grande) por ti para asegurar que no haya un "camino" oculto que lleve a un error.
+Razonar matemáticamente consiste en demostrar que no existe ninguna secuencia de pasos que llegue a un estado donde `pc` sea "terminado" para ambos y `x` no sea 2. Si encuentras un estado donde eso falla, has encontrado un error de lógica.

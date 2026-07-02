@@ -1,0 +1,35 @@
+Entendido. Vamos a separar el algoritmo del razonamiento matemático puro.
+### 1. El Algoritmo
+El algoritmo que queremos probar es un **incremento compartido**. Imagina que esto es lo que ejecutan dos procesadores simultáneamente:
+```text
+// Algoritmo para el proceso p
+leer x de la memoria
+x = x + 1
+guardar x en la memoria
+```
+Este es el algoritmo "problemático" porque, si ambos procesos ejecutan esto al mismo tiempo, el resultado final de $x$ suele ser 1 en lugar de 2 (se pierden datos).
+### 2. Razonamiento Matemático (Lápiz y Papel)
+Para razonar sobre esto, definimos el estado como una tupla: $(x, \text{PC}_1, \text{PC}_2)$, donde $\text{PC}$ es el "Program Counter" o paso actual del proceso.
+Cada proceso tiene 3 pasos:
+* **Paso 0:** Inicio.
+* **Paso 1:** Leer $x$ (el proceso guarda localmente un valor $v$).
+* **Paso 2:** Guardar $v+1$ en $x$.
+**Demostración de que el algoritmo falla:**
+Para demostrar que el algoritmo **no es correcto**, buscamos un camino lógico que llegue a un resultado inesperado.
+* **Estado Inicial:** $S_0 = (x=0, \text{PC}_1=0, \text{PC}_2=0)$
+* **Paso 1:** Proceso 1 lee $x$. Ahora $P_1$ tiene $v_1 = 0$.
+* **Paso 2:** Proceso 2 lee $x$. Ahora $P_2$ tiene $v_2 = 0$.
+* **Paso 3:** Proceso 1 escribe $v_1 + 1 = 1$ en $x$. Ahora $x=1$.
+* **Paso 4:** Proceso 2 escribe $v_2 + 1 = 1$ en $x$. Ahora $x=1$.
+**Resultado:** El valor final de $x$ es 1, pero esperábamos 2.
+### 3. La prueba de corrección
+Si quieres que el algoritmo sea correcto, debes añadir un mecanismo (por ejemplo, una variable `lock` o "cerrojo").
+**Nuevo Algoritmo con cerrojo:**
+1. Si `lock == 0`, entonces `lock = 1`.
+2. Leer $x$, incrementar $x$, guardar $x$.
+3. `lock = 0`.
+**Razonamiento matemático sobre este nuevo algoritmo:**
+Para probar que esto es correcto, defines un **Invariante**:
+$$I \equiv \text{No existen dos procesos en el paso 2 al mismo tiempo}$$
+Para probarlo en papel, haces una tabla de verdad de todos los estados posibles $(x, \text{lock}, \text{PC}_1, \text{PC}_2)$. Si intentas hacer una transición que lleve a ambos procesos al paso 2, verás que la lógica matemática del `lock` lo impide:
+Si el valor de `lock` es 1, la condición para entrar al paso 2 es falsa. Por lo tanto, el sistema nunca permite que los dos procesos modifiquen $x$ simultáneamente. Al comprobar todos los estados, verificas que es imposible llegar a un estado donde el contador sea incorrecto.

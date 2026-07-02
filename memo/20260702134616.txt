@@ -1,0 +1,32 @@
+No hay contradicción. El punto de fricción es la escala de lo que estás modelando.
+Para ser directo: **Sí, los efectos se modelan matemáticamente**, pero el lenguaje de modelado cambia según lo que quieras probar.
+### 1. ¿Por qué el cambio de tono sobre TLA+?
+TLA+ no modela "efectos" en el sentido de "cómo abre el sistema operativo el archivo". Modela **eventos**. Un fallo de disco en TLA+ no es un error de C o de OCaml, es una **transición de estado alternativa**.
+Si tu modelo lógico es:
+1. `Acción: Escribir nuevo estado`
+2. `Resultado: Estado actualizado`
+TLA+ introduce una variable invisible: `Fallo`. El modelo matemático dice: "Si `Fallo` ocurre, la transición termina en un estado $S_{error}$". Lo que tú pruebas no es el *write*, es tu **protocolo de recuperación**. Si tu protocolo dice "si el fallo ocurre, borro el temporal", TLA+ demuestra si ese borrado efectivamente devuelve el sistema a un estado consistente.
+La lógica pura (`complete_pure`) demuestra que $1 + 1 = 2$. TLA+ demuestra que, aunque el papel donde escribes el `2` se queme, puedes reconstruir la suma desde el estado anterior. Son dos pruebas distintas para dos capas distintas.
+### 2. ¿Por qué la "verdad matemática" no es blabla?
+Tu ejemplo de `let updated = todos @ [todo]` es trivial porque es pequeño. El entusiasmo no es por la simplicidad de `append`, sino por la **escalabilidad**.
+Cuando tu sistema crezca y tengas `merge`, `rebase`, `sync` con repositorios remotos y `conflict_resolution`, la "lógica pura" ya no será una línea de código. Será una red de dependencias donde un fallo en el orden de los datos puede corromper el historial.
+Si no tienes una base matemática, cuando el sistema falle (y fallará), estarás haciendo *debugging* a ciegas, intentando adivinar qué variable quedó en mal estado. Si tienes una base matemática, el *debug* es simplemente: **"¿En qué punto de mi transformación de conjuntos el resultado dejó de cumplir el invariante?"**. Se acabó el adivinar. Esa es la diferencia entre alguien que *hace* software y alguien que *verifica* sistemas.
+### 3. El ejercicio práctico: La transición con efectos
+Para probar una función con efectos como la que planteaste, no la mires como código, mírala como un **sistema de estados en capas**:
+* **Capa 0 (Estado Físico):** El disco.
+* **Capa 1 (Estado Lógico):** La lista en memoria.
+Tu `let complete` es una función $F(S_{físico}) \rightarrow S'_{físico}$.
+Para probarla, defines:
+1. **Estado Inicial:** $S_{físico} = T$
+2. **Transición:** $write(S_{tmp}) \rightarrow rename(tmp, T)$
+3. **Invariante:** El sistema siempre debe ser igual a $T$ o a $T'$ (el nuevo estado).
+Si pruebas esto matemáticamente (viendo que no hay camino hacia un estado $T_{corrupto}$), habrás probado que el sistema es **robusto**.
+### 4. ¿Cómo modelar la inyección de fallos?
+No necesitas TLA+ para empezar. Puedes modelar esto con **lógica de precondiciones y postcondiciones**.
+Para tu función de efectos:
+* **Precondición:** El estado es $S_k$.
+* **Efecto:** Ejecutar $write$.
+* **Postcondición:** * Si $write$ tiene éxito: Estado es $S_{k+1}$ y $Inv(S_{k+1})$ es cierto.
+* Si $write$ falla: Estado es $S_k$ y $Inv(S_k)$ es cierto.
+Esto es una prueba matemática de robustez. Si puedes demostrar que para cualquier fallo en el punto de escritura, el estado resultante es $S_k$ o $S_{k+1}$, has probado formalmente que tu código es a prueba de fallos. El código es la implementación; la prueba es este silogismo lógico.
+El entusiasmo viene de que, una vez que adoptas esta forma de ver las cosas, **nunca más escribes un `if` para cubrir un caso que no entiendes**. Los casos de error se derivan de la propia matemática del sistema.

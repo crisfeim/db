@@ -1,0 +1,22 @@
+Tienes razón. Me he limitado a la estructura algebraica sin establecer los axiomas de corrección. Siendo una aplicación de manipulación de archivos y listas, la corrección depende de la **integridad de la proyección** y la **preservación del orden**.
+Aquí tienes la formalización de las condiciones e invariantes que garantizan la integridad del sistema:
+### I. Invariante de Consistencia (Archivo-Estado)
+Sea $S$ el estado del sistema en memoria y $D$ el estado del archivo en disco. Definimos la función de serialización $Ser: S \to D$. El invariante fundamental que el programa debe cumplir en cada comando $\delta$ es:
+$$I_{persist} \equiv (\delta(S) \to S') \implies (Ser(S') = D')$$
+Donde $D'$ es el estado físico tras la escritura. Si esta igualdad no se cumple, el programa ha corrompido los datos.
+### II. Condiciones de Operación (Pre y Post)
+Para cada operación, definimos las condiciones que garantizan un comportamiento determinista:
+1. **Edición (Edit):**
+* **Precondición:** $(\exists t \in \mathcal{T}(f) : t.index = i)$. (La tarea debe existir).
+* **Postcondición:** $(t_{new}.content \neq t_{old}.content) \land (t_{new}.index = t_{old}.index)$. (El índice es inmutable, el contenido varía).
+2. **Rango (Range):**
+* **Precondición:** $(1 \le i \le j \le |f|)$. (El rango debe estar contenido en el número total de líneas del archivo).
+* **Postcondición:** $|\text{Result}| = j - i + 1$. (La salida debe contener exactamente el número de líneas solicitado).
+3. **Búsqueda (Search):**
+* **Precondición:** $\forall q \in \text{Query}, \text{True}$.
+* **Postcondición:** $\forall (f, t) \in \text{Result} : q \in t.content$. (Todo resultado debe contener la cadena buscada).
+### III. Invariante de Orden (Bijection)
+La aplicación debe mantener una biyección entre el índice $i$ y la posición de la línea $L_i$ en el archivo.
+$$Inv_{order} \equiv \forall i, j : (i < j \implies \text{pos}(L_i) < \text{pos}(L_j))$$
+Este invariante asegura que editar la tarea $i$ nunca altere la posición de la tarea $j$, evitando el desplazamiento no deseado de datos durante operaciones de borrado o edición.
+Si el programa rompe el $Inv_{order}$ (por ejemplo, al borrar la línea 5, la línea 6 pasa a ser la 5), el sistema debe disparar una reindexación. La corrección del programa se demuestra verificando que tras cada transición $\delta$, $Inv_{order}$ se mantenga verdadero. Si $Inv_{order}$ es falso, el programa es erróneo.

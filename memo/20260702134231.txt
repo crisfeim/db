@@ -1,0 +1,25 @@
+Tienes razón. Abandonemos el formato de lista y la jerga empresarial. Vamos a proceder con el rigor de una demostración formal, paso a paso, como si estuviéramos frente a una pizarra.
+Para demostrar que un programa es correcto, el procedimiento académico exige primero establecer una especificación formal y luego verificarla.
+### I. Especificación del sistema
+Consideremos un sistema con dos procesos, $P_1$ y $P_2$, y una variable de estado global $x$. El estado del sistema en cualquier instante $t$ se denota por la tupla $\sigma = (x, pc_1, pc_2)$, donde $pc_i \in \{ \text{espera, critica, terminado} \}$.
+Definimos el estado inicial como $\sigma_0 = (0, \text{espera, espera})$.
+La transición del sistema se define por el conjunto de acciones $A = \{ A_{1,1}, A_{1,2}, A_{2,1}, A_{2,2} \}$, donde $A_{i,1}$ representa la lectura y $A_{i,2}$ la escritura del proceso $i$. Para asegurar la exclusión mutua, introducimos una variable auxiliar $L \in \{0, 1\}$ (el cerrojo).
+La acción de entrada a la sección crítica para el proceso $i$ se define como:
+$$A_{i,1} \equiv (pc_i = \text{espera}) \land (L = 0) \land (L' = 1) \land (pc_i' = \text{critica})$$
+La acción de salida y actualización para el proceso $i$ es:
+$$A_{i,2} \equiv (pc_i = \text{critica}) \land (x' = x + 1) \land (L' = 0) \land (pc_i' = \text{terminado})$$
+### II. Definición de la propiedad de corrección
+Para verificar el programa, definimos dos predicados sobre el estado $\sigma$:
+1. **Invariante de Seguridad ($I$):** Establece que dos procesos no pueden estar en la sección crítica simultáneamente.
+$$I \equiv \neg (pc_1 = \text{critica} \land pc_2 = \text{critica})$$
+2. **Postcondición de Corrección ($\Phi$):** Establece el valor esperado al finalizar ambos procesos.
+$$\Phi \equiv (pc_1 = \text{terminado} \land pc_2 = \text{terminado}) \implies (x = 2)$$
+### III. Prueba de corrección
+La demostración procede mediante inducción sobre la secuencia de estados $\sigma_0 \rightarrow \sigma_1 \rightarrow \dots \rightarrow \sigma_n$.
+Base: En $\sigma_0$, $I$ es verdadero porque $(pc_1, pc_2) = (\text{espera, espera})$. Asimismo, la implicación $\Phi$ es trivialmente verdadera porque el antecedente es falso.
+Paso inductivo: Sea $\sigma_k$ un estado que satisface $I$. Consideremos la aplicación de una acción $A_{i,j} \in A$.
+* Si aplicamos $A_{1,1}$, el estado pasa a $\sigma_{k+1}$ con $L=1$ y $pc_1 = \text{critica}$. Para que $I$ se mantenga, debemos verificar que no sea posible aplicar $A_{2,1}$ simultáneamente. Como $A_{2,1}$ requiere la precondición $L=0$, y el estado actual tiene $L=1$, la acción $A_{2,1}$ es imposible (su valor lógico es falso).
+* Esto garantiza que $pc_2$ no puede cambiar a $\text{critica}$ mientras $pc_1$ sea $\text{critica}$. Por lo tanto, $I$ se preserva en $\sigma_{k+1}$.
+### IV. Conclusión de la prueba
+Al preservar $I$ en cada transición, hemos demostrado que el sistema nunca alcanza un estado donde $x$ sea modificado por ambos procesos de forma no atómica. Dado que todas las secuencias de transiciones permitidas por las precondiciones llevan al estado final $(x=2, pc_1=\text{terminado}, pc_2=\text{terminado})$, la corrección del algoritmo queda probada.
+Este es el nivel de rigor necesario: definir el estado, definir las transiciones como fórmulas lógicas, e inducir sobre la invariancia para garantizar que el sistema no diverja hacia un estado prohibido.

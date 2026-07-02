@@ -1,0 +1,16 @@
+Sí, se puede comprobar explícitamente, y sí, el riesgo real en este contexto es bajo — pero vale la pena ver por qué exactamente, en vez de asumirlo.
+**Comprobación explícita**
+```tcl
+proc todo_validate {t} {
+    foreach clave {id content} {
+        if {![dict exists $t $clave]} {
+            error "todo mal formado: falta '$clave'"
+        }
+    }
+}
+```
+`dict exists` te deja verificar antes de acceder, en vez de dejar que `dict get` reviente con una excepción menos informativa. Es el equivalente manual a lo que el compilador de Swift te da gratis — la diferencia es que aquí *tú* decides dónde poner esa validación (normalmente en el borde: al leer del archivo, al recibir un argumento), no en cada acceso.
+**Por qué el riesgo es bajo aquí concretamente**
+El peligro real de un `dict`/diccionario sin forma garantizada aparece cuando los datos **cruzan fronteras de confianza o de tiempo**: vienen de una API externa, de un archivo que otro proceso pudo haber tocado, o de una parte del código que otra persona (o tú mismo, meses después) modifica sin ver el resto. En esos casos, un typo como `content` vs `conent` no se detecta hasta que ese camino de código se ejecuta — que puede ser mucho después de haberlo escrito.
+En tu `t`/`counter.tcl`, el `dict`/lista de líneas se crea y se consume **dentro del mismo archivo, por las mismas funciones, en un ciclo de vida muy corto** (lees el archivo, procesas, escribes). No hay una API pública con la que otro programador vaya a construir un "todo" a mano y pasártelo mal formado — la única fuente de datos es tu propio `counter_make_entry`, que siempre construye la forma correcta. El riesgo estructural que el tipado estático previene (formas inconsistentes entrando desde fuera) casi no tiene superficie de ataque aquí, precisamente porque el programa es pequeño y cerrado.
+Donde sí empezaría a valer la pena la validación explícita (o el salto a tipos): si `counter.tcl` creciera para leer datos generados por *otro* programa (otro CLI, una API, un archivo de configuración externo con formato libre) — ahí el "borde de confianza" ya no es tu propio código, y un typo silencioso sí puede colarse sin que nadie se entere hasta producción. Es la misma heurística de siempre en esta conversación: la protección que da el tipado (o su equivalente manual con `dict exists`) paga cuando hay más de una fuente/consumidor independientes de la estructura, no cuando todo vive en el mismo archivo bajo tu control directo.

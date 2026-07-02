@@ -1,0 +1,28 @@
+Para razonar matemáticamente sobre un programa, el método es **agotar todas las posibilidades**. Si quieres probar que un algoritmo es correcto, debes demostrar que **no existe** una secuencia de pasos que lleve a un estado incorrecto.
+Aquí tienes la demostración paso a paso, usando lógica de estados:
+### 1. Definición del sistema
+Definimos el estado como una tupla $(x, L)$, donde $x \in \mathbb{Z}$ y $L \in \{0, 1\}$.
+* $L=0$ (Libre)
+* $L=1$ (Ocupado)
+### 2. Definición de la transición (Acción)
+Una acción es una fórmula lógica que conecta el estado actual $(x, L)$ con el siguiente $(x', L')$. La acción permitida es:
+$$A \equiv (L = 0) \land (L' = 1) \land (x' = x + 1) \land (L'' = 0)$$
+Esto significa: "Para pasar al estado siguiente, el cerrojo debe estar libre ($L=0$). Si lo está, el cerrojo se bloquea ($L'=1$), el contador aumenta ($x'=x+1$) y finalmente el cerrojo se libera ($L''=0$)."
+### 3. La demostración por contradicción (Inducción sobre los estados)
+Para probar que el contador siempre es correcto, demostramos que si el estado inicial es $(0, 0)$, cualquier estado alcanzable después de $N$ pasos debe satisfacer $x = N$.
+**Paso 1: Estado inicial ($S_0$)**
+$x = 0, L = 0$. (Es correcto).
+**Paso 2: Aplicación de la regla**
+Si intentas aplicar la acción $A$ cuando $L=1$, la fórmula $(L=0)$ es **falsa**. Por lógica, una conjunción con un término falso es falsa:
+$$\text{Acción} = \text{Falso} \land \dots = \text{Falso}$$
+Esto prueba que **el sistema no puede avanzar** si $L=1$.
+**Paso 3: Conclusión**
+Al ser el sistema incapaz de avanzar cuando $L=1$, garantizamos que los dos procesos no pueden solaparse. La única secuencia posible es:
+1. $S_0: (0, 0)$
+2. $A(P_1) \rightarrow S_1: (1, 0)$
+3. $A(P_2) \rightarrow S_2: (2, 0)$
+### Por qué esto es "razonar matemáticamente"
+No estás ejecutando el programa; estás analizando la **fórmula de transición**.
+* Si la fórmula permite que un estado "malo" ocurra, el algoritmo tiene un fallo.
+* Si la fórmula hace que el sistema se bloquee (como ocurre al intentar entrar con $L=1$), significa que has diseñado una barrera lógica.
+En TLA+, este proceso de revisar si una fórmula es "Falsa" o "Verdadera" en cada paso es lo que hace el *Model Checker*. Cuando tú lo haces a mano, estás construyendo el grafo de estados y confirmando que ninguna rama lleva a $x=1$ tras dos ejecuciones. Si no puedes llegar a $x=1$ con estas reglas, has probado matemáticamente que tu algoritmo es correcto.

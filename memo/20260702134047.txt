@@ -1,0 +1,36 @@
+Para entender cómo los `Actors` en Swift resuelven el problema de la intercalación (*interleaving*), vamos a visualizar el proceso.
+Cuando tienes dos tareas intentando modificar el mismo `actor`, Swift no permite que se "solapen" (que ambas cambien el valor de `x` a la vez). Lo que hace es ponerlas en una **cola (mailbox)**.
+### 1. El código en Swift
+Aquí tienes cómo dos tareas concurrentes intentan incrementar el mismo `actor`:
+```swift
+actor Contador {
+    private var x = 0
+    func incrementar() {
+        x += 1
+    }
+    func leer() -> Int { x }
+}
+let c = Contador()
+// Creamos dos tareas concurrentes
+Task { await c.incrementar() }
+Task { await c.incrementar() }
+```
+### 2. Razonamiento matemático: ¿Dónde está la intercalación?
+Aquí es donde entra tu duda. En un sistema sin protección, tendrías una "carrera". En Swift, el modelo de ejecución es:
+* **Paso 1:** `Task A` solicita `incrementar()`. Si el actor está libre, entra.
+* **Paso 2:** `Task B` intenta solicitar `incrementar()`. Swift **suspende** la `Task B` automáticamente.
+* **Paso 3:** `Task A` termina su ejecución y libera al actor.
+* **Paso 4:** Swift activa la `Task B` para que ahora, y solo ahora, pueda acceder a `x`.
+### 3. Comparativa: Modelo TLA+ vs. Modelo Swift
+| Concepto | Representación en TLA+ | Implementación en Swift |
+| --- | --- | --- |
+| **Estado** | Variable $x$ | Propiedad `private var x` |
+| **Transición** | Acción atómica $A$ | Método `func incrementar()` |
+| **Exclusión** | Invariante $(L=0)$ | `Actor` (Runtime serialización) |
+| **Intercalación** | Fallo si $P_1$ y $P_2$ se solapan | Imposible por el aislamiento del Actor |
+### ¿Por qué esto es "razonar" y no solo "programar"?
+Cuando escribes el `actor`, estás definiendo matemáticamente una **regla de acceso**. En TLA+, si quisieras modelar un `actor`, definirías la transición como una acción que **bloquea la entrada de cualquier otra transición** hasta que la actual termine.
+* Si intentas hacer lo mismo con una clase normal (`class` en lugar de `actor`), Swift te daría un error de compilación (*data race*).
+* Ese error de compilación es, en la práctica, tu "Model Checker" diciéndote: "Has definido un camino donde la intercalación de procesos corrompe el estado $x$".
+Al usar el `actor`, estás forzando matemáticamente que el sistema siempre pase por el camino: $(0,0) \rightarrow (1,0) \rightarrow (2,0)$. Es imposible que la tarea B "interfiera" mientras la A está escribiendo, porque el *runtime* de Swift garantiza que las transiciones de los actores sean **mutuamente exclusivas**.
+Si intentaras modelar el `actor` en TLA+, definirías una regla de "cola" donde `Next` solo permite `Acción(A)` o `Acción(B)`, pero nunca `Acción(A) || Acción(B)`. El `actor` es simplemente la forma en que Swift implementa esa restricción lógica.
