@@ -1,0 +1,39 @@
+Leslie Lamport inventó PlusCal porque a los programadores les costaba mucho pensar en términos de ecuaciones matemáticas puras (TLA+), así que les dio una fachada con sabor a código imperativo. Sin embargo, TLA+ puro es el verdadero motor.
+---
+## 1. El modelo en TLA+ puro (Sin PlusCal)
+En TLA+ puro no existen los hilos, los procesos ni las líneas de código. Todo se reduce a:
+1. Definir el **Estado** (las variables y sus valores actuales).
+2. Definir un predicado para el **Estado Inicial** ($Init$).
+3. Definir las operaciones como **fórmulas lógicas** de lo que cambia entre el estado actual y el siguiente ($Next$).
+Para modelar que los procesos leen y escriben en momentos distintos (el entrelazado), tenemos que meter los registros locales de cada hilo dentro del estado global, usando funciones (que en TLA+ actúan como diccionarios o arrays mapeados por el ID del proceso).
+### La especificación matemática ($S$)
+* $Procs = \{1, 2, 3, 4\}$ (Donde $1, 2$ son incrementadores y $3, 4$ decrementadores).
+* $PC \in [Procs \to \{\text{"Read"}, \text{"Write"}, \text{"Done"}\}]$ (El contador de programa de cada proceso).
+* $reg \in [Procs \to \mathbb{Z}]$ (El registro local de cada proceso).
+* $counter \in \mathbb{Z}$ (La variable global).
+### Estado Inicial ($Init$)
+$$Init \equiv counter = 0 \land \forall p \in Procs : (PC[p] = \text{"Read"} \land reg[p] = 0)$$
+### Acciones de Transición (El Entrelazado)
+En lugar de escribir secuencialmente, defines qué pasa si un proceso cualquiera $p$ da un paso. El operador **no-determinista** es simplemente el cuantificador existencial $\exists p \in Procs$. Significa: *"En este turno, algún proceso del conjunto se va a mover"*.
+#### Acción de Lectura para un Incrementador ($p \in \{1,2\}$):
+$$ReadInc(p) \equiv PC[p] = \text{"Read"} \land reg'[p] = counter \land PC'[p] = \text{"Write"} \land \text{UNCHANGED } \langle counter \rangle$$
+#### Acción de Escritura para un Incrementador ($p \in \{1,2\}$):
+$$WriteInc(p) \equiv PC[p] = \text{"Write"} \land counter' = reg[p] + 1 \land PC'[p] = \text{"Done"} \land \text{UNCHANGED } \langle reg \rangle$$
+*(Nota: Las acciones para los decrementadores $\{3,4\}$ son idénticas pero restando $1$ en la escritura).*
+### El Siguiente Estado Global ($Next$)
+La fórmula $Next$ le dice al motor de TLA+ cómo se genera el entrelazado ($A \to C \to B \dots$). En cada paso del reloj del sistema, **un único proceso aleatorio** ejecuta una de sus acciones disponibles:
+$$Next \equiv \exists p \in \{1,2\} : (ReadInc(p) \lor WriteInc(p)) \lor \exists p \in \{3,4\} : (ReadDec(p) \lor WriteDec(p))$$
+Como $Next$ usa un "Existe un $p$ ($\exists p$)", el evaluador matemático se ve obligado a probar el universo donde primero se mueve el proceso 1, luego el 3, luego el 1 otra vez, etc. Generando de forma nativa todas las permutaciones de entrelazado que describimos antes.
+---
+## 2. Cuándo puedes cazar bugs a lápiz y papel, y cuándo necesitas el Model Checker
+Aprender este patrón mental te da un superpoder cognitivo, pero nuestro cerebro tiene límites físicos de hardware (memoria de trabajo).
+### Cuándo te basta con tu cerebro (Lápiz y papel)
+Puedes encontrar bugs de diseño tú solo cuando el problema es de **Exclusión Mutua** o **Invariantes Simples**:
+* **Protocolos de dos actores:** Si estás diseñando la lógica de sincronización entre la App de iOS y un WatchApp mediante Bluetooth, puedes dibujar los estados en un papel y ver fácilmente qué pasa si la conexión se cae justo en el estado intermedio.
+* **Identificar Estados Inválidos:** Te permite ver instantáneamente si tu estructura de datos permite paradojas lógicas (ej: un booleano `isLoading = false` pero un array `users = nil` al mismo tiempo). Tu cerebro detecta la contradicción de inmediato.
+* **Deadlocks Simples (Reentrada):** Como el ejemplo de la `DispatchQueue.sync` anidada que vimos. Al escribir las precondiciones, te das cuenta al instante de que el hilo se bloquea a sí mismo.
+### Cuándo necesitas obligatoriamente el Model Checker (TLC)
+Necesitas la máquina cuando te enfrentas a la **Explosión del Espacio de Estados** (sistemas con comportamiento asíncrono acumulativo):
+* **Lógica dependiente del historial de pasos:** Si el bug solo ocurre si el Proceso 1 lee, luego el Proceso 2 lee, luego el Proceso 2 escribe, luego el Proceso 1 es interrumpido por un fallo de red, y luego el Proceso 3 limpia la caché. Tu cerebro es incapaz de retener esa secuencia de estados intermedios sin que se le agote la memoria RAM mental.
+* **Sistemas Distribuidos / Eventos de Red Concurrentes:** Cuando diseñas un sistema offline-first en iOS que sincroniza con CloudKit/Firebase. Hay tantas variables independientes (estado de la red local, estado del servidor, cola de operaciones locales, cambios conflictivos de otros usuarios) que las combinaciones válidas crecen de forma exponencial.
+**En resumen:** El lápiz y papel te sirve para estructurar las reglas del juego de forma limpia y sin ambigüedades (evitando el 80% de los bugs tontos). El Model Checker es el que usas para que juegue trillones de partidas en segundos y encuentre el caso extremo que a ningún ser humano se le habría ocurrido.

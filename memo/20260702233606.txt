@@ -1,0 +1,9 @@
+ara modelar este escenario en PlusCal (la sintaxis de pseudocódigo que se compila a TLA+) y entender cómo el model checker (TLC) simula la noción de "a la vez", debemos entender cómo piensa la herramienta: el no-determinismo y el entrelazado de acciones.
+1. ¿Cómo le dices a la utilidad la noción de "a la vez"?
+TLC no simula hilos reales corriendo en núcleos físicos en paralelo. En matemáticas, la simultaneidad se modela mediante entrelazado asíncrono (interleaving).
+Si el Proceso 1 tiene que hacer los pasos [A→B] y el Proceso 2 tiene que hacer [C→D], TLC ejecutará de forma no-determinista todas las permutaciones posibles de esos pasos:
+A→B→C→D
+A→C→B→D
+A→C→D→B
+C→A→D→B ...etc.
+Si hay una combinación de pasos donde el orden rompe el sistema, TLC la encontrará. Para forzar este entrelazado y encontrar el error clásico de los contadores concurrentes (la condición de carrera), debemos modelar que la operación x = x + 1 no es atómica a nivel de CPU. Requiere tres pasos: Leer el valor, Modificarlo en un registro local, y Escribirlo de vuelta.
