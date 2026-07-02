@@ -1,1 +1,0 @@
-Revert comand for undo changes up to last commit in fossil & git
