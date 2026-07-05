@@ -1,5 +1,0 @@
-Sí, el auge de la IA refuerza el valor de modelar algoritmos de forma matemática.
-Las razones son:
-* **Separación de tareas:** Los LLM destacan en la generación de código sintáctico y estructuración de archivos, que son tareas de traducción mecánica. Fallan en el razonamiento lógico estricto necesario para resolver problemas de concurrencia o estados complejos.
-* **Especificación sin ambigüedad:** El modelado matemático (como TLA+) define las propiedades e invariantes del sistema con precisión absoluta. Una especificación formal verificada es el mejor *prompt* posible para que una IA genere código ejecutable correcto sin alucinaciones lógicas.
-* **Foco en el diseño:** El cuello de botella de la ingeniería de software se desplaza de la codificación al diseño arquitectónico. Saber modelar matemáticamente permite verificar la lógica del sistema antes de su implementación.
